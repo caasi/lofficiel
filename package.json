@@ -5,6 +5,7 @@
   "main": "main.ls",
   "dependencies": {
     "LiveScript": "^1.2.0",
+    "bluebird": "^2.2.2",
     "prelude-ls": "^1.1.1",
     "request": "^2.34.0"
   },

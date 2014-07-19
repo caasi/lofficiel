@@ -1,7 +1,17 @@
-_ = require 'prelude-ls'
+{map, flatten, filter, foldr1} = require 'prelude-ls'
+
+# prepare promises
 require! fs
 require! request
+Promise = require 'bluebird'
+readdir = Promise.promisify fs.readdir
+mkdir   = Promise.promisify fs.mkdir
+exists  = (path) ->
+  new Promise (resolve) ->
+    result <- fs.exists path
+    resolve result
 
+# configs
 src = 'http://patrimoine.editionsjalou.com/inc/imprime_image.php?pp=pdf&idp='
 pre = 'lofficiel-'
 ext = '.jpeg'
@@ -18,40 +28,42 @@ for i from 1 to 385
     end:   1000
 
 check-dir = (name) ->
-  to-download = {}
-  base = +name
-  path = "./#{name}"
-  fs.mkdirSync path if not fs.existsSync path
-  files = fs.readdirSync path
-  range = dirs[name]
-  if files.length isnt range.end - range.start
-    for let i from range.start til range.end
-      remote-path = "#{src}#{base + i}"
-      local-path = "#{path}/#{pre}#{base + i}#{ext}"
-      if not fs.existsSync local-path
-        to-download[remote-path] = local-path
-  to-download
-
-console.log 'checking existing files...'
-files = [0 to 386] |> _.map (-> "#{it}000") |> _.map check-dir |> _.fold (<<<), {}
-
-keys = Object.keys files
-console.log "files to download: #{keys.length}"
+  new Promise (resolve, reject) ->
+    base = +name
+    path = "./#{name}"
+    exists path
+      .then (exist) -> mkdir path if not exist
+      .then         -> readdir path
+      .then (files) ->
+        range = dirs[name]
+        if files.length isnt range.end - range.start
+          tested = for let i from range.start til range.end
+            remote-path = "#{src}#{base + i}"
+            local-name = "#{pre}#{base + i}#{ext}"
+            local-path = "#{path}/#{local-name}"
+            if not (local-name in files)
+              src: remote-path
+              dest: local-path
+          resolve filter (isnt undefined), tested
+        else
+          resolve []
 
 should-end = false
-j = 0
-:get-next-image let
-  return if j is keys.length or should-end
-  k = keys[j]
-  v = files[k]
-  console.log v
-  request k
-    .pipe fs.createWriteStream v
-    .on \finish ->
-      j := j + 1
-      get-next-image!
-
 process.on \SIGINT !->
   should-end := true
-  console.log "waiting for last file to finish..."
+  console.log "wait for last file to finish..."
+
+console.log 'checking existing files...'
+Promise.all([0 to 386] |> map (-> "#{it}000") |> map check-dir)
+  .then (pathes) ->
+    pathes = flatten pathes
+    console.log "files to download: #{pathes.length}"
+    #i = 0
+    :get-image let i = 0
+      return if i is pathes.length or should-end
+      path = pathes[i]
+      console.log "save to #{path.dest}..."
+      request path.src
+        .pipe fs.createWriteStream path.dest
+        .on \finish -> get-image i + 1
 
