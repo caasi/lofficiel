@@ -59,11 +59,15 @@ Promise.all([0 to 386] |> map (-> "#{it}000") |> map check-dir)
     pathes = flatten pathes
     console.log "files to download: #{pathes.length}"
     #i = 0
-    :get-image let i = 0
+    get-image = ->
       return if i is pathes.length or should-end
-      path = pathes[i]
+      path = pathes.shift!
       console.log "save to #{path.dest}..."
       request path.src
         .pipe fs.createWriteStream path.dest
-        .on \finish -> get-image i + 1
+        .on \finish !-> get-image!
+        .on \error !(err) -> throw err
+    for i til 10
+      setTimeout (-> get-image!), i * 200
+  .catch console.log
 

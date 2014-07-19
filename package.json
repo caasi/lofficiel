@@ -1,6 +1,6 @@
 {
   "name": "lofficiel",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "backup lofficiel db page by page",
   "main": "main.ls",
   "dependencies": {
