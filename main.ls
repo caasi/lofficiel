@@ -62,12 +62,19 @@ Promise.all([0 to 386] |> map (-> "#{it}000") |> map check-dir)
     get-image = ->
       return if i is pathes.length or should-end
       path = pathes.shift!
+      bytes-saved = 0
       console.log "save to #{path.dest}..."
       request path.src
         .pipe fs.createWriteStream path.dest
-        .on \finish !-> get-image!
-        .on \error !(err) -> throw err
-    for i til 10
-      setTimeout (-> get-image!), i * 200
+        .on \error  !(err) -> throw err
+        .on \data   !-> bytes-saved += it.length
+        .on \finish !->
+          if bytes-saved is 0
+            throw new Error 'possibly banned by the server'
+          else
+            get-image!
+    parallel = +process.argv.2 or 1
+    for i til parallel
+      setTimeout (-> get-image!), i * 500
   .catch console.log
 

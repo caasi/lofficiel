@@ -1,6 +1,6 @@
 {
   "name": "lofficiel",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "backup lofficiel db page by page",
   "main": "main.ls",
   "dependencies": {
@@ -11,7 +11,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "start": "./node_modules/.bin/lsc ./main.ls",
+    "start": "./node_modules/.bin/lsc ./main.ls 8",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
